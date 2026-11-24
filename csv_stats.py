@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 """Print per-column summary statistics for a CSV file."""
 
+import argparse
 import csv
 import math
 import statistics
+import sys
 from collections import Counter
 
 
@@ -87,3 +89,34 @@ def format_report(results):
         lines += [f"  {label:<12}{value}" for label, value in rows]
         blocks.append("\n".join(lines))
     return "\n\n".join(blocks)
+
+
+def main(argv=None):
+    parser = argparse.ArgumentParser(description="Print per-column statistics for a CSV file.")
+    parser.add_argument("csv_file", help="path to the CSV file, or - to read from stdin")
+    parser.add_argument("-d", "--delimiter", default=",", help="field delimiter (default: ,)")
+    args = parser.parse_args(argv)
+
+    if len(args.delimiter) != 1:
+        parser.error("delimiter must be a single character")
+
+    try:
+        if args.csv_file == "-":
+            results = compute_stats(sys.stdin, args.delimiter)
+        else:
+            with open(args.csv_file, newline="", encoding="utf-8") as handle:
+                results = compute_stats(handle, args.delimiter)
+    except (OSError, UnicodeDecodeError, csv.Error) as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        return 1
+
+    if not results:
+        print("No columns found.")
+        return 0
+
+    print(format_report(results))
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
