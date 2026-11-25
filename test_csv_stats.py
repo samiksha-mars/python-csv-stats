@@ -33,6 +33,10 @@ class ReadColumnsTest(unittest.TestCase):
     def test_empty_input(self):
         self.assertEqual(read_columns([]), ([], []))
 
+    def test_byte_order_mark_is_dropped(self):
+        headers, _ = read_columns(["\ufeffname,age", "Asha,29"])
+        self.assertEqual(headers, ["name", "age"])
+
     def test_custom_delimiter(self):
         headers, columns = read_columns(["a;b", "1;2"], delimiter=";")
         self.assertEqual(headers, ["a", "b"])
@@ -107,6 +111,14 @@ class MainTest(unittest.TestCase):
         self.assertEqual(code, 0)
         self.assertIn("x (numeric)", out)
         self.assertIn("mean        2", out)
+
+    def test_file_with_byte_order_mark(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "excel.csv"
+            path.write_bytes(b"\xef\xbb\xbfage\n29\n41\n")
+            code, out, _ = self.run_main([str(path)])
+        self.assertEqual(code, 0)
+        self.assertTrue(out.startswith("age (numeric)"))
 
     def test_missing_file(self):
         code, _, err = self.run_main(["does-not-exist.csv"])

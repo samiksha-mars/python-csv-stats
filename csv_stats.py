@@ -22,11 +22,14 @@ def read_columns(lines, delimiter=","):
     """Read CSV lines into (headers, columns) where columns[i] is a list of raw strings.
 
     Short rows count as missing values; extra cells beyond the header are ignored.
+    A UTF-8 byte order mark (as written by Excel) before the first header is dropped.
     """
     reader = csv.reader(lines, delimiter=delimiter)
     header = next(reader, None)
     if header is None:
         return [], []
+    if header:
+        header[0] = header[0].removeprefix("\ufeff")
     headers = [name.strip() or f"column{i + 1}" for i, name in enumerate(header)]
     columns = [[] for _ in headers]
     for row in reader:
