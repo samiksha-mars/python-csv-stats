@@ -4,7 +4,7 @@ import unittest
 from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
 
-from csv_stats import column_stats, compute_stats, format_number, main, parse_number, read_columns
+from csv_stats import column_stats, resolve_delimiter, compute_stats, format_number, main, parse_number, read_columns
 
 
 class ParseNumberTest(unittest.TestCase):
@@ -111,6 +111,37 @@ class MainTest(unittest.TestCase):
         self.assertEqual(code, 0)
         self.assertIn("x (numeric)", out)
         self.assertIn("mean        2", out)
+
+    def test_tab_delimiter_spellings(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "data.txt"
+            path.write_text("x\ty\n1\ta\n3\tb\n")
+            for spelling in ("\\t", "tab", "TAB", "\t"):
+                with self.subTest(spelling=spelling):
+                    code, out, _ = self.run_main([str(path), "-d", spelling])
+                    self.assertEqual(code, 0)
+                    self.assertIn("x (numeric)", out)
+                    self.assertIn("y (text)", out)
+
+    def test_tsv_files_default_to_tab(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "data.TSV"
+            path.write_text("x\ty\n1\ta\n")
+            code, out, _ = self.run_main([str(path)])
+        self.assertEqual(code, 0)
+        self.assertIn("x (numeric)", out)
+
+    def test_resolve_delimiter(self):
+        self.assertEqual(resolve_delimiter(None, "a.csv"), ",")
+        self.assertEqual(resolve_delimiter(None, "-"), ",")
+        self.assertEqual(resolve_delimiter("pipe", "a.csv"), "|")
+        self.assertEqual(resolve_delimiter(";", "a.tsv"), ";")
+
+    def test_bad_delimiter(self):
+        err = io.StringIO()
+        with redirect_stderr(err), self.assertRaises(SystemExit):
+            main(["x.csv", "-d", "ab"])
+        self.assertIn("single character", err.getvalue())
 
     def test_file_with_byte_order_mark(self):
         with tempfile.TemporaryDirectory() as tmp:

@@ -9,7 +9,7 @@ Uses only the Python standard library.
 - Numeric columns: count, missing, min, max, mean, median, standard deviation
 - Text columns: count, missing, number of unique values, most common value
 - Blank cells and short rows are counted as missing
-- Custom delimiter (`-d ';'`) and reading from stdin (`-`)
+- Custom delimiter (`-d ';'`, `-d '\t'` or `-d tab`), tab by default for `.tsv` files, and reading from stdin (`-`)
 
 ## Usage
 
@@ -18,6 +18,9 @@ python3 csv_stats.py sample.csv
 
 # Semicolon-separated file
 python3 csv_stats.py data.csv -d ';'
+
+# Tab-separated file (.tsv files use tab automatically)
+python3 csv_stats.py data.txt -d tab
 
 # Read from stdin
 cat sample.csv | python3 csv_stats.py -

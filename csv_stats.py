@@ -8,6 +8,9 @@ import statistics
 import sys
 from collections import Counter
 
+# Names for delimiters that are awkward to type on a command line.
+DELIMITER_ALIASES = {"\\t": "\t", "tab": "\t", "space": " ", "pipe": "|", "semicolon": ";", "comma": ","}
+
 
 def parse_number(text):
     """Return text as a finite float, or None if it is not a number."""
@@ -94,14 +97,26 @@ def format_report(results):
     return "\n\n".join(blocks)
 
 
+def resolve_delimiter(text, filename):
+    """Turn the --delimiter value into one character; None picks one from the file name."""
+    if text is None:
+        return "\t" if filename.lower().endswith(".tsv") else ","
+    return DELIMITER_ALIASES.get(text.lower(), text)
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description="Print per-column statistics for a CSV file.")
     parser.add_argument("csv_file", help="path to the CSV file, or - to read from stdin")
-    parser.add_argument("-d", "--delimiter", default=",", help="field delimiter (default: ,)")
+    parser.add_argument(
+        "-d", "--delimiter",
+        help="field delimiter: one character, or \\t, tab, space, pipe, semicolon, comma "
+             "(default: tab for .tsv files, otherwise ,)",
+    )
     args = parser.parse_args(argv)
 
+    args.delimiter = resolve_delimiter(args.delimiter, args.csv_file)
     if len(args.delimiter) != 1:
-        parser.error("delimiter must be a single character")
+        parser.error("delimiter must be a single character (or \\t, tab, space, pipe, semicolon, comma)")
 
     try:
         if args.csv_file == "-":
